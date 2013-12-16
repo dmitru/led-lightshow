@@ -45,8 +45,7 @@ void setup()
   
   // You'll want to change this to choose the right device on your system
   // usually it will be Arduino.list[0]
-  //Arduino arduino = new Arduino(this, Arduino.list()[2], 57600);
-  Arduino arduino = null;
+  Arduino arduino = new Arduino(this, Arduino.list()[2], 57600);
   leds = new LedsDevice(arduino, LEDS_PIN_LOW, LEDS_PIN_MED, LEDS_PIN_HIGH);
  
   minim = new Minim(this);  
@@ -390,10 +389,10 @@ class Spectrum {
     fill(255, 255, 255, 128);
     stroke(255, 255, 255, 128);
     for(int i = 1; i < spectrum.fft.specSize(); i++) {
-    		int x1 = i * (SPECTRUM_WIDTH / SPECTRUM_SIZE);
-  		  int x2 = x1 + (SPECTRUM_WIDTH / SPECTRUM_SIZE); 
-  		  float band = this.bands[i];
-  		  rect(x1, HEIGHT, x2, HEIGHT - HEIGHT * band);
+      int x1 = i * (SPECTRUM_WIDTH / SPECTRUM_SIZE);
+  	  int x2 = x1 + (SPECTRUM_WIDTH / SPECTRUM_SIZE); 
+  	  float band = this.bands[i];
+  	  rect(x1, HEIGHT, x2, HEIGHT - HEIGHT * band);
     }
     
     stroke(255, 0, 0, 255);
@@ -497,9 +496,9 @@ class LedsDevice {
     brightness[1] = spectrum.calculateAverageOnInterval(spectrum.getMedFreqStart(), spectrum.getMedFreqEnd());
     brightness[2] = spectrum.calculateAverageOnInterval(spectrum.getHighFreqStart(), spectrum.getHighFreqEnd());
     
-    //arduino.analogWrite(pinLow, brightnessTable[(int) (brightness[0] * 255)]);
-    //arduino.analogWrite(pinMed, brightnessTable[(int) (brightness[1] * 255)]);
-    //arduino.analogWrite(pinHigh, brightnessTable[(int) (brightness[2] * 255)]);
+    arduino.analogWrite(pinLow, brightnessTable[(int) (brightness[0] * 255)]);
+    arduino.analogWrite(pinMed, brightnessTable[(int) (brightness[1] * 255)]);
+    arduino.analogWrite(pinHigh, brightnessTable[(int) (brightness[2] * 255)]);
   }
   
   public float[] getBrightness() {
