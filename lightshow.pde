@@ -390,9 +390,9 @@ class Spectrum {
     stroke(255, 255, 255, 128);
     for(int i = 1; i < spectrum.fft.specSize(); i++) {
       int x1 = i * (SPECTRUM_WIDTH / SPECTRUM_SIZE);
-  	  int x2 = x1 + (SPECTRUM_WIDTH / SPECTRUM_SIZE); 
-  	  float band = this.bands[i];
-  	  rect(x1, HEIGHT, x2, HEIGHT - HEIGHT * band);
+      int x2 = x1 + (SPECTRUM_WIDTH / SPECTRUM_SIZE); 
+      float band = this.bands[i];
+      rect(x1, HEIGHT, x2, HEIGHT - HEIGHT * band);
     }
     
     stroke(255, 0, 0, 255);
