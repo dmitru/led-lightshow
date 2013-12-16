@@ -6,7 +6,7 @@ import controlP5.*;
 
 Minim minim;
  
-Leds leds;
+LedsDevice leds;
 final int LEDS_PIN_LOW = 9;
 final int LEDS_PIN_MED = 10;
 final int LEDS_PIN_HIGH = 11;
@@ -14,51 +14,43 @@ final int LEDS_PIN_HIGH = 11;
 Spectrum spectrum;
 final int SPECTRUM_SIZE = 256;
 
-float SCALER_LOW = 0.5;
-float SCALER_MED = 1.25;
-float SCALER_HIGH = 4.0;
+final float DEFAULT_NOISE_LEVEL = 0.02;
+final float DEFAULT_DECAY_RATE = 0.95;
 
-float SCALER_MASTER = 1.0;
+final float DEFAULT_SCALER_LOW = 0.5;
+final float DEFAULT_SCALER_MED = 1.25;
+final float DEFAULT_SCALER_HIGH = 4.0;
+final float DEFAULT_SCALER_MASTER = 1.0;
 
-final float LOW_START_DEFAULT = 40;
-final float LOW_END_DEFAULT = 1800;
-final float MED_START_DEFAULT = 1500;
-final float MED_END_DEFAULT = 6200;
-final float HIGH_START_DEFAULT = 6200;
-final float HIGH_END_DEFAULT = 19000;
+final float DEFAULT_LOW_START = 40;
+final float DEFAULT_LOW_END = 1800;
+final float DEFAULT_MED_START = 1500;
+final float DEFAULT_MED_END = 6200;
+final float DEFAULT_HIGH_START = 6200;
+final float DEFAULT_HIGH_END = 19000;
 
-float LOW_START = LOW_START_DEFAULT;
-float LOW_END = LOW_END_DEFAULT;
-float MED_START = MED_START_DEFAULT;
-float MED_END = MED_END_DEFAULT;
-float HIGH_START = HIGH_START_DEFAULT;
-float HIGH_END = HIGH_END_DEFAULT;
-
-float decayRate = 0.92;
-
+// Windows parameters
 final int SPECTRUM_WIDTH = 800;
 final int CONTROLS_WIDTH = 300;
 final int HEIGHT = 600;
 final int WIDTH = SPECTRUM_WIDTH + CONTROLS_WIDTH;
 
-float[] hPrev = new float[SPECTRUM_SIZE + 1];
 float[] brightness = new float[3]; 
  
 void setup()
 {
   size(SPECTRUM_WIDTH + CONTROLS_WIDTH, HEIGHT, P3D);
+  rectMode(CORNERS);
+  setUpGui();
   
   // You'll want to change this to choose the right device on your system
   // usually it will be Arduino.list[0]
-  Arduino arduino = new Arduino(this, Arduino.list()[2], 57600);
+  //Arduino arduino = new Arduino(this, Arduino.list()[2], 57600);
+  Arduino arduino = null;
   leds = new LedsDevice(arduino, LEDS_PIN_LOW, LEDS_PIN_MED, LEDS_PIN_HIGH);
  
   minim = new Minim(this);  
   spectrum = new Spectrum(minim.getLineIn(Minim.STEREO, SPECTRUM_SIZE * 2));
-  
-  setUpGui();
- 
-  rectMode(CORNERS);
 }
 
 ControlP5 cp5;
@@ -73,189 +65,173 @@ void setUpGui()
   
   int vbase = 20; 
   
-  cp5.addSlider("SCALER_MASTER")
+  cp5.addTextlabel("Sensitivity")
+     .setText("Sensitivity:")
+     .setPosition(SPECTRUM_WIDTH + 20, vbase);
+     
+  vbase += vsize + vspace;
+  
+  cp5.addSlider("Master")
      .setPosition(SPECTRUM_WIDTH + 20, vbase)
      .setSize(CONTROLS_WIDTH - 100, vsize)
-     .setValue(SCALER_MASTER)
+     .setValue(DEFAULT_SCALER_MASTER)
      .setRange(0.0, 5.0)
      ;
   vbase += vspace + vsize;
   
   vbase += vspaceLarge ;
-  cp5.addSlider("SCALER_LOW")
+  cp5.addSlider("Low")
      .setPosition(SPECTRUM_WIDTH + 20, vbase)
      .setSize(CONTROLS_WIDTH - 100, vsize)
+     .setValue(DEFAULT_SCALER_LOW)
      .setRange(0.0, 5.0)
      ;
   vbase += vspace + vsize;
-  cp5.addSlider("SCALER_MED")
+  cp5.addSlider("Med")
      .setPosition(SPECTRUM_WIDTH + 20, vbase)
      .setSize(CONTROLS_WIDTH - 100, vsize)
+     .setValue(DEFAULT_SCALER_MED)
      .setRange(0.0, 5.0)
      ;
   vbase += vspace + vsize;
-  cp5.addSlider("SCALER_HIGH")
+  cp5.addSlider("High")
      .setPosition(SPECTRUM_WIDTH + 20, vbase)
      .setSize(CONTROLS_WIDTH - 100, vsize)
+     .setValue(DEFAULT_SCALER_HIGH)
      .setRange(0.0, 5.0)
      ;
   vbase += vspace + vsize;
      
   vbase += vspaceLarge;
-  cp5.addSlider("LOW_START")
+  cp5.addTextlabel("Band frequencies")
+     .setText("Band frequencies:")
+     .setPosition(SPECTRUM_WIDTH + 20, vbase);
+  vbase += vspace + vsize;   
+  cp5.addSlider("Low start")
      .setPosition(SPECTRUM_WIDTH + 20, vbase)
      .setSize(CONTROLS_WIDTH - 100, vsize)
      .setRange(20, 800)
-     .setValue(LOW_START_DEFAULT)
+     .setValue(DEFAULT_LOW_START)
      ;
   vbase += vspace + vsize;
-  cp5.addSlider("LOW_END")
+  cp5.addSlider("Low end")
      .setPosition(SPECTRUM_WIDTH + 20, vbase)
      .setSize(CONTROLS_WIDTH - 100, vsize)
      .setRange(100, 3000)
-     .setValue(LOW_END_DEFAULT)
+     .setValue(DEFAULT_LOW_END)
      ;
   vbase += vspace + vsize;
      
   vbase += vspaceLarge;
-  cp5.addSlider("MED_START")
+  cp5.addSlider("Med start")
      .setPosition(SPECTRUM_WIDTH + 20, vbase)
      .setSize(CONTROLS_WIDTH - 100, vsize)
      .setRange(500, 4000)
-     .setValue(MED_START_DEFAULT)
+     .setValue(DEFAULT_MED_START)
      ;
   vbase += vspace + vsize;
-  cp5.addSlider("MED_END")
+  cp5.addSlider("Med end")
      .setPosition(SPECTRUM_WIDTH + 20, vbase)
      .setSize(CONTROLS_WIDTH - 100, vsize)
      .setRange(3000, 8000)
-     .setValue(MED_END_DEFAULT)
+     .setValue(DEFAULT_MED_END)
      ;
   vbase += vspace + vsize;
      
   vbase += vspaceLarge;
-  cp5.addSlider("HIGH_START")
+  cp5.addSlider("High start")
      .setPosition(SPECTRUM_WIDTH + 20, vbase)
      .setSize(CONTROLS_WIDTH - 100, vsize)
-     .setRange(4000,8000)
-     .setValue(HIGH_START_DEFAULT)
+     .setRange(4000, 8000)
+     .setValue(DEFAULT_HIGH_START)
      ;
   vbase += vspace + vsize;
-  cp5.addSlider("HIGH_END")
+  cp5.addSlider("High end")
      .setPosition(SPECTRUM_WIDTH + 20, vbase)
      .setSize(CONTROLS_WIDTH - 100, vsize)
-     .setRange(6000,20000)
-     .setValue(HIGH_END_DEFAULT)
+     .setRange(6000, 20000)
+     .setValue(DEFAULT_HIGH_END)
      ;
+  vbase += vspace + vsize;
+     
+  vbase += vspaceLarge;
+  cp5.addTextlabel("Other")
+     .setText("Other:")
+     .setPosition(SPECTRUM_WIDTH + 20, vbase);
+     
+  vbase += vsize + vspace;
+  cp5.addSlider("Decay rate")
+     .setPosition(SPECTRUM_WIDTH + 20, vbase)
+     .setSize(CONTROLS_WIDTH - 100, vsize)
+     .setRange(0.85, 0.999)
+     .setValue(DEFAULT_DECAY_RATE)
+     ;
+  vbase += vspace + vsize;
+  cp5.addSlider("Noise level")
+     .setPosition(SPECTRUM_WIDTH + 20, vbase)
+     .setSize(CONTROLS_WIDTH - 100, vsize)
+     .setRange(0.001, 0.05)
+     .setValue(DEFAULT_NOISE_LEVEL)
+     ;
+}
+
+void controlEvent(ControlEvent theEvent) {
+  if (theEvent.isController()) {
+    String name = theEvent.controller().name();
+    float value = theEvent.controller().value();
+   
+    if (spectrum == null) 
+      return;
+   
+    if (name == "Master") {
+      spectrum.setScalerMaster(value);
+    } else if (name == "Low") {
+      spectrum.setScalerLow(value);
+    } else if (name == "Med") {
+      spectrum.setScalerMed(value);
+    } else if (name == "High") {
+      spectrum.setScalerHigh(value);
+    } else if (name == "Low start") {
+      spectrum.setLowFreqStart(value);
+    } else if (name == "Low end") {
+      spectrum.setLowFreqEnd(value);
+    } else if (name == "Med start") {
+      spectrum.setMedFreqStart(value);
+    } else if (name == "Med end") {
+      spectrum.setMedFreqEnd(value);
+    } else if (name == "High start") {
+      spectrum.setHighFreqStart(value);
+    } else if (name == "High end") {
+      spectrum.setHighFreqEnd(value);
+    } else if (name == "Decay rate") {
+      spectrum.setDecayRate(value); 
+    } else if (name == "Noise level") {
+      spectrum.setNoiseLevel(value); 
+    }
+  }  
 }
  
 void draw()
 { 
   spectrum.update();
-  float averageLevel = spectrum.calcAverage();
+  leds.updateBrightness(spectrum);
   
-  background(0);
-  
-  // draw three color rectangles, for low, medium and high frequencies  
+  spectrum.draw();
+	
+  // draw three color rectangles, for low, medium and high frequencies
+  float brightness[] = leds.getBrightness();
+
   fill(255, 0, 0, (int) 255 * brightness[0]);
   stroke(255, 0, 0, (int) 255 * brightness[0]);
-  rect(0, HEIGHT, SPECTRUM_WIDTH/3, 0);
+  rect(0, HEIGHT, SPECTRUM_WIDTH / 3, 0);
   
   fill(0, 255, 0, (int) 255 * brightness[1]);
   stroke(0, 255, 0, (int) 255 * brightness[1]);
-  rect(SPECTRUM_WIDTH/3, HEIGHT, 2*SPECTRUM_WIDTH/3, 0);
+  rect(SPECTRUM_WIDTH / 3, HEIGHT, 2 * SPECTRUM_WIDTH / 3, 0);
   
   fill(0, 0, 255, (int) 255 * brightness[2]);
   stroke(0, 0, 255, (int) 255 * brightness[2]);
-  rect(2*SPECTRUM_WIDTH/3, HEIGHT, SPECTRUM_WIDTH, 0);
-  
-  // draw spectrum
-  fill(255, 255, 255, 128);
-  stroke(255, 255, 255, 128);
-  
-  for(int i = 1; i < spectrum.fft.specSize(); i++)
-  {
-    int x1 = i * (SPECTRUM_WIDTH / SPECTRUM_SIZE);
-    int x2 = x1 + (SPECTRUM_WIDTH / SPECTRUM_SIZE); 
-    float band = spectrum.fft.getBand(i);
-        
-    if (i < spectrum.fft.freqToIndex(LOW_END)) 
-      band *= SCALER_LOW;
-    else if (i < spectrum.fft.freqToIndex(MED_END)) 
-      band *= SCALER_MED;
-    else
-      band *= SCALER_HIGH;
-     
-    band *= SCALER_MASTER; 
-    
-    float h = (averageLevel > 0.04)? 1.0 - (averageLevel) / band : 0.0;
-    
-    if (h < 0) 
-      h = 0;
-    else if (h > 1.0) 
-      h = 1.0;
-      
-    if (hPrev[i] > h) 
-      h = decayRate * hPrev[i] + (1 - decayRate) * h;
-    hPrev[i] = h;
-    
-    rect(x1, HEIGHT, x2, HEIGHT - HEIGHT * h);
-  }
-  
-  stroke(255, 0, 0, 255);
-  line(spectrum.fft.freqToIndex(LOW_START) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), 0, spectrum.fft.freqToIndex(LOW_START) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), HEIGHT);
-  line(spectrum.fft.freqToIndex(LOW_END) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), 0, spectrum.fft.freqToIndex(LOW_END) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), HEIGHT);
-  stroke(0, 255, 0, 255);
-  line(spectrum.fft.freqToIndex(MED_START) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), 0, spectrum.fft.freqToIndex(MED_START) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), HEIGHT);
-  line(spectrum.fft.freqToIndex(MED_END) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), 0, spectrum.fft.freqToIndex(MED_END) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), HEIGHT);
-  stroke(0, 0, 255, 255);
-  line(spectrum.fft.freqToIndex(HIGH_START) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), 0, spectrum.fft.freqToIndex(HIGH_START) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), HEIGHT);
-  line(spectrum.fft.freqToIndex(HIGH_END) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), 0, spectrum.fft.freqToIndex(HIGH_END) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), HEIGHT);
-  
-  float hh = 0.0;
-  int cnt = 0;
-  for(int i = spectrum.fft.freqToIndex(LOW_START); i <= spectrum.fft.freqToIndex(LOW_END); ++i) {
-    hh += hPrev[i];
-    cnt++;
-  }  
-  hh /= cnt;
-  
-  if (brightness[0] > hh) 
-    brightness[0] = (1 - decayRate) * brightness[0] + decayRate * hh;
-  else
-    brightness[0] = hh;
-    
-  hh = 0.0;
-  cnt = 0;
-  float b = (spectrum.fft.freqToIndex(MED_END) - spectrum.fft.freqToIndex(MED_START) + 1) / 2;
-  float middle = (spectrum.fft.freqToIndex(MED_END) + spectrum.fft.freqToIndex(MED_START)) / 2;
-  for(int i = spectrum.fft.freqToIndex(MED_START) + 1; i <= spectrum.fft.freqToIndex(MED_END); ++i) {
-    hh += hPrev[i] * 2 * (1 - abs(( i - middle) / b));
-    cnt++;
-  }  
-  hh /= cnt;
-  
-  if (brightness[1] > hh) 
-    brightness[1] = (1 - decayRate) * brightness[1] + decayRate * hh;
-  else
-    brightness[1] = hh;
-    
-  hh = 0.0;
-  cnt = 0;
-  for(int i = spectrum.fft.freqToIndex(HIGH_START) + 1; i <= spectrum.fft.freqToIndex(HIGH_END); ++i) {
-    hh += hPrev[i];
-    cnt++;
-  }  
-  hh /= cnt;
-  
-  if (brightness[2] > hh) 
-    brightness[2] = (1 - decayRate) * brightness[2] + decayRate * hh;
-  else
-    brightness[2] = hh;
-    
-  leds.setBrightness(brightness[0], brightness[1], brightness[2]);
-  
-  fill(255);
+  rect(2 * SPECTRUM_WIDTH / 3, HEIGHT, SPECTRUM_WIDTH, 0);
 }
  
 void stop()
@@ -265,85 +241,274 @@ void stop()
   super.stop();
 }
 
-
 class Spectrum {
   public Spectrum(AudioInput in) {
     this.in = in;
-    fft = new FFT(this.in.bufferSize(), this.in.sampleRate()); 
+    this.fft = new FFT(this.in.bufferSize(), this.in.sampleRate()); 
+    this.bands = new float[this.fft.specSize() + 1];
+    this.prevBands = new float[this.fft.specSize() + 1];
+    this.noiseLevel = DEFAULT_NOISE_LEVEL;
+    this.decayRate = DEFAULT_DECAY_RATE;
+    
+    this.scalerMaster = DEFAULT_SCALER_MASTER;
+    this.scalerLow = DEFAULT_SCALER_LOW;
+    this.scalerMed = DEFAULT_SCALER_MED;
+    this.scalerHigh = DEFAULT_SCALER_HIGH;
+    
+    this.lowFreqStart = DEFAULT_LOW_START;
+    this.lowFreqEnd = DEFAULT_LOW_END;
+    this.medFreqStart = DEFAULT_MED_START;
+    this.medFreqEnd = DEFAULT_MED_END;
+    this.highFreqStart = DEFAULT_HIGH_START;
+    this.highFreqEnd = DEFAULT_HIGH_END;
+  }
+  
+  public void setDecayRate(float value) {
+    this.decayRate = value;
+  }
+  
+  public float getDecayRate() {
+    return this.decayRate;
+  }
+  
+  public void setScalerMaster(float value) {
+    this.scalerMaster = value;
+  }
+  
+  public float getScalerMaster() {
+    return this.scalerMaster;
+  }
+  
+  public void setScalerLow(float value) {
+    this.scalerLow = value;
+  }
+  
+  public float getScalerLow() {
+    return this.scalerLow;
+  }
+  
+  public void setScalerMed(float value) {
+    this.scalerMed = value;
+  }
+  
+  public float getScalerMed() {
+    return this.scalerMed;
+  }
+  
+  public void setScalerHigh(float value) {
+    this.scalerHigh = value;
+  }
+  
+  public float getScalerHigh() {
+    return this.scalerHigh;
+  }
+  
+  public void setLowFreqStart(float value) {
+    this.lowFreqStart = value; 
+  }
+  
+  public float getLowFreqStart() {
+    return this.lowFreqStart; 
+  }
+  
+  public void setMedFreqStart(float value) {
+    this.medFreqStart = value; 
+  }
+  
+  public float getMedFreqStart() {
+    return this.medFreqStart; 
+  }
+  
+  public void setHighFreqStart(float value) {
+    this.highFreqStart = value; 
+  }
+  
+  public float getHighFreqStart() {
+    return this.highFreqStart; 
+  }
+  
+    public void setLowFreqEnd(float value) {
+    this.lowFreqEnd = value; 
+  }
+  
+  public float getLowFreqEnd() {
+    return this.lowFreqEnd; 
+  }
+  
+  public void setMedFreqEnd(float value) {
+    this.medFreqEnd = value; 
+  }
+  
+  public float getMedFreqEnd() {
+    return this.medFreqEnd; 
+  }
+  
+  public void setHighFreqEnd(float value) {
+    this.highFreqEnd = value; 
+  }
+  
+  public float getHighFreqEnd() {
+    return this.highFreqEnd; 
+  }
+  
+  public void setNoiseLevel(float value) {
+    this.noiseLevel = value;
+  }
+  
+  public float getNoiseLevel() {
+    return this.noiseLevel;
   }
   
   public void update() {
     fft.forward(in.mix); 
+	
+    float averageLevel = calculateAverage();
+    for(int i = 1; i < spectrum.fft.specSize(); i++) {
+      float band = this.fft.getBand(i);
+      		
+      band *= this.scalerMaster;
+      if (i < this.fft.freqToIndex(this.lowFreqEnd)) 
+        band *= this.scalerLow;
+      else if (i < spectrum.fft.freqToIndex(this.medFreqEnd)) 
+        band *= this.scalerMed;
+      else
+        band *= this.scalerHigh;	     		
+      
+      float h = (averageLevel > this.noiseLevel)? 1.0 - (averageLevel) / band : 0.0;
+           		
+      if (h < 0) h = 0;
+      if (h > 1.0) h = 1.0;
+      		  
+      if (bands[i] > h) 
+        h = this.decayRate * bands[i] + (1 - this.decayRate) * h;
+      bands[i] = h;
+    }
+  }
+  
+  public void draw() {
+    background(0);
+    fill(255, 255, 255, 128);
+    stroke(255, 255, 255, 128);
+    for(int i = 1; i < spectrum.fft.specSize(); i++) {
+    		int x1 = i * (SPECTRUM_WIDTH / SPECTRUM_SIZE);
+  		  int x2 = x1 + (SPECTRUM_WIDTH / SPECTRUM_SIZE); 
+  		  float band = this.bands[i];
+  		  rect(x1, HEIGHT, x2, HEIGHT - HEIGHT * band);
+    }
+    
+    stroke(255, 0, 0, 255);
+    line(this.fft.freqToIndex(this.lowFreqStart) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), 0, 
+      this.fft.freqToIndex(this.lowFreqStart) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), HEIGHT);
+    line(this.fft.freqToIndex(this.lowFreqEnd) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), 0, 
+      this.fft.freqToIndex(this.lowFreqEnd) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), HEIGHT);
+    stroke(0, 255, 0, 255);
+    line(this.fft.freqToIndex(this.medFreqStart) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), 0, 
+      this.fft.freqToIndex(this.medFreqStart) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), HEIGHT);
+    line(this.fft.freqToIndex(this.medFreqEnd) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), 0, 
+      this.fft.freqToIndex(this.medFreqEnd) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), HEIGHT);
+    stroke(0, 0, 255, 255);
+    line(this.fft.freqToIndex(this.highFreqStart) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), 0, 
+      this.fft.freqToIndex(this.highFreqStart) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), HEIGHT);
+    line(this.fft.freqToIndex(this.highFreqEnd) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), 0, 
+      this.fft.freqToIndex(this.highFreqEnd) * (SPECTRUM_WIDTH / SPECTRUM_SIZE), HEIGHT);
   }
   
   public void stop() {
     in.close();
   }
   
-  public float calcAverage() {
-     return calcAverage(1.0, 1.0, 1.0); 
+  float calculateAverageOnInterval(float freqStart, float freqEnd) {
+    float density = 0.0;
+    int cnt = 0;
+    for(int i = fft.freqToIndex(freqStart); i <= fft.freqToIndex(freqEnd); ++i) {
+      density += this.bands[i];
+      cnt++;
+    } 
+    return density / cnt;
   }
   
-  public float calcAverage(float scalerLow, float scalerMed, float scalerHigh) {
+  float calculateAverage(float freqStart, float freqEnd) {
+    float density = 0.0;
+    int cnt = 0;
+    for(int i = fft.freqToIndex(freqStart); i <= fft.freqToIndex(freqEnd); ++i) {
+      density += fft.getBand(i);
+      cnt++;
+    } 
+    return density / cnt;
+  }
+  
+  private float calculateAverage() {
     float densityLow = 0.0;
     int cntLow = 0;
-  
-    for(int i = fft.freqToIndex(LOW_START); i <= fft.freqToIndex(LOW_END); ++i) {
+    for(int i = fft.freqToIndex(this.lowFreqStart); i <= fft.freqToIndex(this.lowFreqEnd); ++i) {
       densityLow += fft.getBand(i);
       cntLow++;
-    } 
-  
-   float densityMed = 0.0; 
-   int cntMed = 0;
-   for(int i = fft.freqToIndex(MED_START); i <= fft.freqToIndex(MED_END); ++i) {
+    }
+   
+    float densityMed = 0.0;
+    int cntMed = 0;
+    for(int i = fft.freqToIndex(this.medFreqStart); i <= fft.freqToIndex(this.medFreqEnd); ++i) {
       densityMed += fft.getBand(i);
       cntMed++;
-    }
-  
+    } 
+   
     float densityHigh = 0.0;
     int cntHigh = 0;
-    for(int i = fft.freqToIndex(HIGH_START); i <= fft.freqToIndex(HIGH_END); ++i) {
-      densityHigh += fft.getBand(i);
+    for(int i = fft.freqToIndex(this.highFreqStart); i <= fft.freqToIndex(this.highFreqEnd); ++i) {
+      densityHigh += this.bands[i];
       cntHigh++;
-    }     
+    }  
     
-    return (densityLow * scalerLow + densityMed * scalerMed + densityHigh * scalerHigh) / 
-           (cntLow * scalerLow + cntMed * scalerMed + cntHigh * scalerHigh);
+    return (densityLow * this.scalerLow + densityMed * this.scalerMed + densityHigh * this.scalerHigh) / 
+      (cntLow * this.scalerLow + cntMed * this.scalerMed + cntHigh * this.scalerHigh); 
   }
   
   private AudioInput in;
   public FFT fft;
+  public float[] bands;
+  private float[] prevBands;
+  private float noiseLevel;
+  private float decayRate;
+  
+  private float scalerMaster;
+  private float scalerLow;
+  private float scalerMed;
+  private float scalerHigh;
+  
+  private float lowFreqStart;
+  private float medFreqStart;
+  private float highFreqStart;
+  private float lowFreqEnd;
+  private float medFreqEnd;
+  private float highFreqEnd;
 }
 
-
-interface Leds {
-  public void setBrightness(double low, double med, double high);
-}
-
-class LedsDevice implements Leds {
+class LedsDevice {
   public LedsDevice(Arduino arduino, int pinLow, int pinMed, int pinHigh) {
     this.arduino = arduino;
+    this.brightness = new float[3];
     this.pinLow = pinLow;
     this.pinMed = pinMed;
     this.pinHigh = pinHigh;
   } 
   
-  public void setBrightness(double low, double med, double high) {
-    if (low > 1.0) low = 1.0;
-    if (low < 0.0) low = 0.0;
+  public void updateBrightness(Spectrum spectrum) {
+    brightness[0] = spectrum.calculateAverageOnInterval(spectrum.getLowFreqStart(), spectrum.getLowFreqEnd());
+    brightness[1] = spectrum.calculateAverageOnInterval(spectrum.getMedFreqStart(), spectrum.getMedFreqEnd());
+    brightness[2] = spectrum.calculateAverageOnInterval(spectrum.getHighFreqStart(), spectrum.getHighFreqEnd());
     
-    if (med > 1.0) med = 1.0;
-    if (med < 0.0) med = 0.0;
-    
-    if (high > 1.0) high = 1.0;
-    if (high < 0.0) high = 0.0;
-    
-    arduino.analogWrite(pinLow, brightnessTable[(int) (low * 255)]);
-    arduino.analogWrite(pinMed, brightnessTable[(int) (med * 255)]);
-    arduino.analogWrite(pinHigh, brightnessTable[(int) (high * 255)]);
+    //arduino.analogWrite(pinLow, brightnessTable[(int) (brightness[0] * 255)]);
+    //arduino.analogWrite(pinMed, brightnessTable[(int) (brightness[1] * 255)]);
+    //arduino.analogWrite(pinHigh, brightnessTable[(int) (brightness[2] * 255)]);
+  }
+  
+  public float[] getBrightness() {
+    return this.brightness;
   }
  
-  private Arduino arduino; 
+  private Arduino arduino;
+
+  private float brightness[];
   
   private int pinLow;
   private int pinMed;
@@ -369,3 +534,4 @@ class LedsDevice implements Leds {
     0xFD, 0xFD, 0xFD, 0xFD, 0xFD, 0xFD, 0xFD, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFF, 0xFF
   };
 }
+
